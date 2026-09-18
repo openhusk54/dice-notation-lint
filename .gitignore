@@ -1,0 +1,6 @@
+/dicelint
+/bin/
+*.exe
+*.test
+*.out
+.DS_Store
