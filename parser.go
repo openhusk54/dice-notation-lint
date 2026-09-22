@@ -25,11 +25,20 @@ type Modifier struct {
 	Pos   Position
 }
 
+// ExplodeMod is the '!' or '!N' suffix: a die that rolls its max face (or,
+// with an explicit threshold, N or higher) is rerolled and the result added
+// again, repeating for as long as it keeps meeting the threshold.
+type ExplodeMod struct {
+	Pos       Position
+	Threshold *NumberLit // nil means "explodes on the die's own max face"
+}
+
 type DiceExpr struct {
 	Count    *NumberLit // nil means an implicit count of 1, e.g. "d20"
 	DPos     Position
 	Sides    *NumberLit // nil when Percent is true
 	Percent  bool
+	Explode  *ExplodeMod
 	Modifier *Modifier
 }
 
@@ -217,6 +226,18 @@ func (p *Parser) parseDice(count *NumberLit) Node {
 	}
 
 	dice := &DiceExpr{Count: count, DPos: dPos, Sides: sides, Percent: percent}
+
+	if p.cur.Type == TokBang {
+		bangPos := p.cur.Pos
+		p.next()
+		var threshold *NumberLit
+		if p.cur.Type == TokInt {
+			t := p.cur
+			threshold = &NumberLit{Value: p.parseIntLiteral(t), Pos: t.Pos}
+			p.next()
+		}
+		dice.Explode = &ExplodeMod{Pos: bangPos, Threshold: threshold}
+	}
 
 	if isModifierToken(p.cur.Type) {
 		modPos := p.cur.Pos

@@ -63,6 +63,50 @@ func checkNode(n Node) []Finding {
 	return findings
 }
 
+// checkExplode flags thresholds that either never fire (dead modifier) or
+// always fire (the die rerolls forever, since every roll meets its own
+// threshold). A percentile die's max face is 100; an ordinary die's is its
+// side count.
+func checkExplode(d *DiceExpr) []Finding {
+	var findings []Finding
+	e := d.Explode
+
+	maxFace := 100
+	known := d.Percent
+	if !d.Percent && d.Sides != nil && d.Sides.Value > 0 {
+		maxFace = d.Sides.Value
+		known = true
+	}
+
+	if e.Threshold != nil {
+		switch {
+		case e.Threshold.Value <= 1:
+			findings = append(findings, Finding{
+				Pos:      e.Threshold.Pos,
+				Severity: SeverityError,
+				Rule:     "explode-threshold-too-low",
+				Message:  fmt.Sprintf("exploding on %d or higher means every roll explodes, this never terminates", e.Threshold.Value),
+			})
+		case known && e.Threshold.Value > maxFace:
+			findings = append(findings, Finding{
+				Pos:      e.Threshold.Pos,
+				Severity: SeverityWarning,
+				Rule:     "explode-threshold-exceeds-sides",
+				Message:  fmt.Sprintf("die only goes up to %d, exploding on %d or higher never happens", maxFace, e.Threshold.Value),
+			})
+		}
+	} else if known && maxFace == 1 {
+		findings = append(findings, Finding{
+			Pos:      e.Pos,
+			Severity: SeverityError,
+			Rule:     "explode-threshold-too-low",
+			Message:  "a d1 always meets its own max face, exploding on it never terminates",
+		})
+	}
+
+	return findings
+}
+
 func checkDice(d *DiceExpr) []Finding {
 	var findings []Finding
 
@@ -104,6 +148,10 @@ func checkDice(d *DiceExpr) []Finding {
 				Message:  "a d1 always rolls 1, consider replacing it with the constant 1",
 			})
 		}
+	}
+
+	if d.Explode != nil {
+		findings = append(findings, checkExplode(d)...)
 	}
 
 	if d.Modifier != nil {

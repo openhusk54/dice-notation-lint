@@ -51,8 +51,12 @@ warnings (or nothing at all).
 - Arithmetic: `+ - * /` and parentheses
 - Dice terms: `NdM`, with `N` optional (defaults to 1, so `d20` is valid)
 - Percentile dice: `d%`
+- Exploding dice: `!` rerolls and adds again any die that shows its own max
+  face, repeating as long as that keeps happening; `!N` explodes on `N` or
+  higher instead, e.g. `6d6!`, `3d6!5`
 - Keep/drop modifiers: `kh`, `kl`, `dh`, `dl`, each optionally followed by a
-  count, e.g. `4d6kh3`, `2d20dl1`
+  count, e.g. `4d6kh3`, `2d20dl1` (a die term can combine `!` and keep/drop,
+  with `!` written first: `4d6!kh3`)
 
 ## Checks implemented so far
 
@@ -64,6 +68,8 @@ warnings (or nothing at all).
 | `one-sided-die` | `d1` always rolls 1 |
 | `modifier-zero-count` | `kh0` / `dl0` keep or drop nothing |
 | `keep-drop-exceeds-count` | `2d6kh5` asks to keep more dice than were rolled |
+| `explode-threshold-too-low` | `!1` (or `d1!`) explodes on every roll and never terminates |
+| `explode-threshold-exceeds-sides` | `d6!7` can never explode, the die tops out at 6 |
 | `syntax` | malformed expressions, reported at the offending token |
 
 More checks are planned; the rule set above is a starting point, not the
